@@ -9,6 +9,7 @@ const port = 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use('/images', express.static('images'));
 
 // Configura la connessione a PostgreSQL
 const pool = new Pool({
