@@ -37,6 +37,22 @@ app.get('/series', async (req, res) => {
   }
   
 });
+// Route per vedere una serie dettaglio
+app.get('/series/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('SELECT * FROM series WHERE setid = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).send('Serie non trovata');
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore nel recupero della serie:', err);
+    res.status(500).send('Errore nel recupero della serie');
+  }
+});
+
+
 // Route per ottenere tutte le carte
 app.get('/cards', async (req, res) => {
   try {
@@ -46,6 +62,21 @@ app.get('/cards', async (req, res) => {
   } catch (err) {
     console.error('Errore nella query /cards:', err.message);
     res.status(500).send('Errore nel recupero delle carte');
+  }
+});
+// Route per ottenere tutte le carte di una specifica serie (es. /cards/DB02)
+app.get('/cards/:id', async (req, res) => {
+  const setId = req.params.id;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM cards WHERE setid = $1',
+      [setId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Errore nella query /cards/:id:', err.message);
+    res.status(500).send('Errore nel recupero delle carte della serie');
   }
 });
 
