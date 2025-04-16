@@ -86,19 +86,17 @@ app.get('/cards/:setid/:cardid', async (req, res) => {
       .from('cards')
       .select('*')
       .eq('setid', setid)
-      .eq('cardid', cardid);
+      .eq('cardid', cardid)
+      .single();
 
     if (result.error) throw result.error;
-    if (result.data.length === 0) {
-      return res.status(404).send('Carta non trovata');
-    }
-
-    res.json(result.data[0]);
+    res.json(result.data);
   } catch (err) {
-    console.error('Errore nella query /cards/:setid/:cardid:', err.message);
+    console.error('Errore nel recupero della carta:', err);
     res.status(500).send('Errore nel recupero della carta');
   }
 });
+
 
 // Route per ottenere la collezione di un utente specifico
 app.get('/user_cards/:user_id', async (req, res) => {
