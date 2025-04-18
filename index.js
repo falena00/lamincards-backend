@@ -74,7 +74,7 @@ app.post('/login', async (req, res) => {
     if (error) throw error;
 
     if (!users || users.length === 0) {
-      return res.status(401).json({ message: 'Email non trovata' });
+      return res.status(401).json({ message: 'Account non trovato, Registrati ora!' });
     }
 
     const user = users[0];
@@ -231,6 +231,46 @@ app.post('/user_cards', async (req, res) => {
     res.status(500).send('Errore nella gestione della carta');
   }
 });
+
+// POST /update-user
+app.post('/update-user', async (req, res) => {
+  const { userid, email, password } = req.body;
+
+  try {
+    // Costruisci i campi da aggiornare dinamicamente
+    const updates = {};
+    if (email) updates.email = email;
+    if (password) {
+      const hashed = await bcrypt.hash(password, 10);
+      updates.password = hashed;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'Nessun campo da aggiornare' });
+    }
+
+    // Esegui l'update su Supabase
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('userid', userid)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore Supabase:", error.message);
+      return res.status(500).json({ message: 'Errore durante l\'aggiornamento' });
+    }
+
+    // Ritorna l'utente aggiornato (senza password!)
+    const { password: _, ...userWithoutPassword } = data;
+    res.json(userWithoutPassword);
+  } catch (err) {
+    console.error("Errore generale:", err.message);
+    res.status(500).json({ message: 'Errore nel server' });
+  }
+});
+
 
 // Avvia il server
 app.listen(port, () => {
