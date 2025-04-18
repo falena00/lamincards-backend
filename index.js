@@ -6,6 +6,7 @@ import supabase from './supabase.js'; // Supabase client
 console.log("Eseguendo index.js...");
 const app = express();
 const port = 3001;
+import bcrypt from 'bcrypt'; // Importa bcrypt per la gestione delle password
 
 app.use(cors());
 app.use(express.json());
@@ -15,6 +16,88 @@ app.use('/images', express.static('images'));
 app.get('/', (req, res) => {
   res.send('Backend Lamincards attivo!');
 });
+// REGISTRAZIONE UTENTE
+app.post('/register', async (req, res) => {
+  const { email, username, password } = req.body;
+
+  if (!email || !username || !password) {
+    return res.status(400).json({ message: 'Tutti i campi sono obbligatori' });
+  }
+
+  try {
+    // Controlla se l'utente esiste già
+    const check = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email);
+
+    if (check.data.length > 0) {
+      return res.status(409).json({ message: 'Utente già esistente' });
+    }
+
+    // Hasher password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Inserisce l'utente
+    const { error } = await supabase
+      .from('users')
+      .insert([
+        {
+          email,
+          username,
+          password: hashedPassword
+        }
+      ]);
+
+    if (error) throw error;
+
+    res.status(201).json({ message: 'Utente registrato correttamente' });
+
+  } catch (err) {
+    console.error('Errore nella registrazione:', err);
+    res.status(500).json({ message: 'Errore nella registrazione' });
+  }
+});
+// Login endpoint
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // 🔍 Cerca l'utente tramite Supabase
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .limit(1);
+
+    if (error) throw error;
+
+    if (!users || users.length === 0) {
+      return res.status(401).json({ message: 'Email non trovata' });
+    }
+
+    const user = users[0];
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Password errata' });
+    }
+
+    // ✅ Login riuscito
+    res.json({
+      userid: user.userid,
+      username: user.username,
+      email: user.email,
+    });
+
+  } catch (err) {
+    console.error("Errore nel login:", err.message);
+    res.status(500).send("Errore nel server");
+  }
+});
+
+
 
 // Route per vedere tutte le serie
 app.get('/series', async (req, res) => {
